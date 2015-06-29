@@ -33,6 +33,11 @@ var TimeGrid = Grid.extend({
 		this.el.html(this.renderHtml());
 		this.dayEls = this.el.find('.fc-day');
 		this.slatEls = this.el.find('.fc-slats tr');
+
+		for (i = 0; i < this.colCnt; i++) {
+			cell = this.getCell(i);
+			this.view.trigger('agendaRender', null, cell.start, this.dayEls.eq(i));
+		}
 	},
 
 
