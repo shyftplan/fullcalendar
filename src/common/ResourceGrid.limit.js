@@ -3,7 +3,7 @@
 ----------------------------------------------------------------------------------------------------------------------*/
 // NOTE: all the segs being passed around in here are foreground segs
 
-$.fullCalendar.ResourceGrid.mixin({
+ResourceGrid.mixin({
 
 	segPopover: null, // the Popover that holds events that can't fit in a cell. null when not visible
 	popoverSegs: null, // an array of segment objects that the segPopover holds. null when not visible

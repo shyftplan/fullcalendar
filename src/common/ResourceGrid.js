@@ -1,11 +1,13 @@
 
-var ResourceGrid = $.fullCalendar.ResourceGrid = $.fullCalendar.Grid.extend({
+var ResourceGrid = Grid.extend({
 
 	bottomCoordPadding: 0, // hack for extending the hit area for the last row of the coordinate grid
 
-	cellDates: null, // flat chronological array of each cell's dates
+	colDates: null, // flat chronological array of each cell's dates
 	dayToCellOffsets: null, // maps days offsets from grid's start date, to cell offsets
 
+	minTime: null, // Duration object that denotes the first visible time of any given day
+	maxTime: null, // Duration object that denotes the exclusive visible end time of any given day
 
 	rowEls: null, // set of fake row elements
 	dayEls: null, // set of whole-day elements comprising the row's background
@@ -15,7 +17,7 @@ var ResourceGrid = $.fullCalendar.ResourceGrid = $.fullCalendar.Grid.extend({
   cells: {},
 
 	constructor: function() {
-		$.fullCalendar.Grid.apply(this, arguments);
+		Grid.apply(this, arguments);
 
 		this.processOptions();
 		this.cellDuration = moment.duration(1, 'day'); // for Grid system
@@ -30,7 +32,6 @@ var ResourceGrid = $.fullCalendar.ResourceGrid = $.fullCalendar.Grid.extend({
     var resources = this.resources;
 		var rowCnt = resources.length;
 		var colCnt = this.colCnt;
-		var cellCnt = rowCnt * colCnt;
 		var html = '';
 		var row;
 		var i, cell;
@@ -43,10 +44,12 @@ var ResourceGrid = $.fullCalendar.ResourceGrid = $.fullCalendar.Grid.extend({
 		this.rowEls = this.el.find('.fc-row');
 		this.dayEls = this.el.find('.fc-day');
 
-		for (i = 0; i < cellCnt; i++) {
-			cell = this.getCell(i);
-			view.trigger('resourceRender', null, cell.start, this.dayEls.eq(i));
-		}
+		for (row = 0; row < rowCnt; row++) {
+      for (i = 0; i < colCnt; i++) {
+        cell = this.getCell(resources[row], i);
+        view.trigger('resourceRender', null, cell.start, this.dayEls.eq(i));
+      }
+    }
 	},
 
 
@@ -76,7 +79,7 @@ var ResourceGrid = $.fullCalendar.ResourceGrid = $.fullCalendar.Grid.extend({
 			'<div class="' + classes.join(' ') + '">' +
 				'<div class="fc-bg">' +
 					'<table>' +
-						this.rowHtml('day', row) + // leverages RowRenderer. calls dayCellHtml()
+						this.rowHtml('resource', row) + // leverages RowRenderer. calls dayCellHtml()
 					'</table>' +
 				'</div>' +
 				'<div class="fc-content-skeleton">' +
@@ -109,7 +112,7 @@ var ResourceGrid = $.fullCalendar.ResourceGrid = $.fullCalendar.Grid.extend({
 	// Renders the HTML for a whole-day cell. Will eventually end up in the day-row's background.
 	// We go through a 'day' row type instead of just doing a 'bg' row type so that the View can do custom rendering
 	// specifically for whole-day rows, whereas a 'bg' might also be used for other purposes (TimeGrid bg for example).
-	dayCellHtml: function(cell) {
+	resourceCellHtml: function(cell) {
 		return this.bgCellHtml(cell);
 	},
 
@@ -121,6 +124,9 @@ var ResourceGrid = $.fullCalendar.ResourceGrid = $.fullCalendar.Grid.extend({
 	processOptions: function() {
 		var view = this.view;
 		this.resources = view.opt('resources');
+    this.rowCnt = this.resources.length;
+		this.minTime = moment.duration(view.opt('minTime'));
+		this.maxTime = moment.duration(view.opt('maxTime'));
 	},
 
 
@@ -155,65 +161,42 @@ var ResourceGrid = $.fullCalendar.ResourceGrid = $.fullCalendar.Grid.extend({
 
 
 	rangeUpdated: function() {
-		var cellDates;
-		var firstDay;
-		var rowCnt;
-		var colCnt;
+		var view = this.view;
+		var colDates = [];
+		var date;
 
-		this.updateCellDates(); // populates cellDates and dayToCellOffsets
-		cellDates = this.cellDates;
-
-		if (this.breakOnWeeks) {
-			// count columns until the day-of-week repeats
-			firstDay = cellDates[0].day();
-			for (colCnt = 1; colCnt < cellDates.length; colCnt++) {
-				if (cellDates[colCnt].day() == firstDay) {
-					break;
-				}
-			}
-			rowCnt = Math.ceil(cellDates.length / colCnt);
-		}
-		else {
-			rowCnt = 1;
-			colCnt = cellDates.length;
+		date = this.start.clone();
+		while (date.isBefore(this.end)) {
+			colDates.push(date.clone());
+			date.add(1, 'day');
+			date = view.skipHiddenDays(date);
 		}
 
-		this.rowCnt = rowCnt;
-		this.colCnt = colCnt;
+		if (this.isRTL) {
+			colDates.reverse();
+		}
+
+		this.colDates = colDates;
+		this.colCnt = colDates.length;
 	},
 
 
-	// Populates cellDates and dayToCellOffsets
-	updateCellDates: function() {
-		var view = this.view;
-		var date = this.start.clone();
-		var dates = [];
-		var offset = -1;
-		var offsets = [];
+	getCell: function(resourceId, col) {
+		var cell;
 
-		while (date.isBefore(this.end)) { // loop each day from start to end
-			if (view.isHiddenDay(date)) {
-				offsets.push(offset + 0.5); // mark that it's between offsets
-			}
-			else {
-				offset++;
-				offsets.push(offset);
-				dates.push(date.clone());
-			}
-			date.add(1, 'days');
-		}
+		cell = { resource: resourceId, col: col };
 
-		this.cellDates = dates;
-		this.dayToCellOffsets = offsets;
+		// $.extend(cell, this.getRowData(resourceId), this.getColData(col));
+		$.extend(cell, this.computeCellRange(cell));
+
+		return cell;
 	},
 
 
 	// Given a cell object, generates its start date. Returns a reference-free copy.
 	computeCellDate: function(cell) {
-		var colCnt = this.colCnt;
-		var index = this.isRTL ? colCnt - cell.col - 1 : cell.col;
-
-		return this.cellDates[index].clone();
+		var date = this.colDates[cell.col];
+		return date;
 	},
 
 
@@ -250,54 +233,30 @@ var ResourceGrid = $.fullCalendar.ResourceGrid = $.fullCalendar.Grid.extend({
 	------------------------------------------------------------------------------------------------------------------*/
 
 
-	// Slices up a date range by row into an array of segments
+	// Slices up a date range by column into an array of segments
 	rangeToSegs: function(range) {
-		var isRTL = this.isRTL;
-		var rowCnt = this.rowCnt;
 		var colCnt = this.colCnt;
 		var segs = [];
-		var first, last; // inclusive cell-offset range for given range
-		var row;
-		var rowFirst, rowLast; // inclusive cell-offset range for current row
-		var isStart, isEnd;
-		var segFirst, segLast; // inclusive cell-offset range for segment
 		var seg;
+		var col;
+		var colDate;
+		var colRange;
 
-		range = this.view.computeDayRange(range); // make whole-day range, considering nextDayThreshold
-		first = this.dateToCellOffset(range.start);
-		last = this.dateToCellOffset(range.end.subtract(1, 'days')); // offset of inclusive end date
+		// normalize :(
+		range = {
+			start: range.start.clone().stripZone(),
+			end: range.end.clone().stripZone()
+		};
 
-		for (row = 0; row < rowCnt; row++) {
-			rowFirst = row * colCnt;
-			rowLast = rowFirst + colCnt - 1;
-
-			// intersect segment's offset range with the row's
-			segFirst = Math.max(rowFirst, first);
-			segLast = Math.min(rowLast, last);
-
-			// deal with in-between indices
-			segFirst = Math.ceil(segFirst); // in-between starts round to next cell
-			segLast = Math.floor(segLast); // in-between ends round to prev cell
-
-			if (segFirst <= segLast) { // was there any intersection with the current row?
-
-				// must be matching integers to be the segment's start/end
-				isStart = segFirst === first;
-				isEnd = segLast === last;
-
-				// translate offsets to be relative to start-of-row
-				segFirst -= rowFirst;
-				segLast -= rowFirst;
-
-				seg = { row: row, isStart: isStart, isEnd: isEnd };
-				if (isRTL) {
-					seg.leftCol = colCnt - segLast - 1;
-					seg.rightCol = colCnt - segFirst - 1;
-				}
-				else {
-					seg.leftCol = segFirst;
-					seg.rightCol = segLast;
-				}
+		for (col = 0; col < colCnt; col++) {
+			colDate = this.colDates[col]; // will be ambig time/timezone
+			colRange = {
+				start: colDate.clone().time(this.minTime),
+				end: colDate.clone().time(this.maxTime)
+			};
+			seg = intersectionToSeg(range, colRange); // both will be ambig timezone
+			if (seg) {
+				seg.col = col;
 				segs.push(seg);
 			}
 		}
@@ -427,63 +386,63 @@ var ResourceGrid = $.fullCalendar.ResourceGrid = $.fullCalendar.Grid.extend({
 	------------------------------------------------------------------------------------------------------------------*/
 
 
-	// fillSegTag: 'td', // override the default tag name
+	fillSegTag: 'td', // override the default tag name
 
 
 	// Renders a set of rectangles over the given segments of days.
 	// Only returns segments that successfully rendered.
-	// renderFill: function(type, segs, className) {
-	// 	var nodes = [];
-	// 	var i, seg;
-	// 	var skeletonEl;
-  //
-	// 	segs = this.renderFillSegEls(type, segs); // assignes `.el` to each seg. returns successfully rendered segs
-  //
-	// 	for (i = 0; i < segs.length; i++) {
-	// 		seg = segs[i];
-	// 		skeletonEl = this.renderFillRow(type, seg, className);
-	// 		this.rowEls.eq(seg.row).append(skeletonEl);
-	// 		nodes.push(skeletonEl[0]);
-	// 	}
-  //
-	// 	this.elsByFill[type] = $(nodes);
-  //
-	// 	return segs;
-	// },
-  //
-  //
+	renderFill: function(type, segs, className) {
+		// var nodes = [];
+		// var i, seg;
+		// var skeletonEl;
+    //
+		// segs = this.renderFillSegEls(type, segs); // assignes `.el` to each seg. returns successfully rendered segs
+    //
+		// for (i = 0; i < segs.length; i++) {
+		// 	seg = segs[i];
+		// 	skeletonEl = this.renderFillRow(type, seg, className);
+		// 	this.rowEls.eq(seg.row).append(skeletonEl);
+		// 	nodes.push(skeletonEl[0]);
+		// }
+    //
+		// this.elsByFill[type] = $(nodes);
+    //
+		// return segs;
+	},
+
+
 	// // Generates the HTML needed for one row of a fill. Requires the seg's el to be rendered.
-	// renderFillRow: function(type, seg, className) {
-	// 	var colCnt = this.colCnt;
-	// 	var startCol = seg.leftCol;
-	// 	var endCol = seg.rightCol + 1;
-	// 	var skeletonEl;
-	// 	var trEl;
-  //
-	// 	className = className || type.toLowerCase();
-  //
-	// 	skeletonEl = $(
-	// 		'<div class="fc-' + className + '-skeleton">' +
-	// 			'<table><tr/></table>' +
-	// 		'</div>'
-	// 	);
-	// 	trEl = skeletonEl.find('tr');
-  //
-	// 	if (startCol > 0) {
-	// 		trEl.append('<td colspan="' + startCol + '"/>');
-	// 	}
-  //
-	// 	trEl.append(
-	// 		seg.el.attr('colspan', endCol - startCol)
-	// 	);
-  //
-	// 	if (endCol < colCnt) {
-	// 		trEl.append('<td colspan="' + (colCnt - endCol) + '"/>');
-	// 	}
-  //
-	// 	this.bookendCells(trEl, type);
-  //
-	// 	return skeletonEl;
-	// }
+	renderFillRow: function(type, seg, className) {
+		// var colCnt = this.colCnt;
+		// var startCol = seg.leftCol;
+		// var endCol = seg.rightCol + 1;
+		// var skeletonEl;
+		// var trEl;
+    //
+		// className = className || type.toLowerCase();
+    //
+		// skeletonEl = $(
+		// 	'<div class="fc-' + className + '-skeleton">' +
+		// 		'<table><tr/></table>' +
+		// 	'</div>'
+		// );
+		// trEl = skeletonEl.find('tr');
+    //
+		// if (startCol > 0) {
+		// 	trEl.append('<td colspan="' + startCol + '"/>');
+		// }
+    //
+		// trEl.append(
+		// 	seg.el.attr('colspan', endCol - startCol)
+		// );
+    //
+		// if (endCol < colCnt) {
+		// 	trEl.append('<td colspan="' + (colCnt - endCol) + '"/>');
+		// }
+    //
+		// this.bookendCells(trEl, type);
+    //
+		// return skeletonEl;
+	}
 
 });
