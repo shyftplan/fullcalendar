@@ -35,6 +35,7 @@
         "src/common/ResourceGrid.js",
         "src/common/ResourceGrid.events.js",
         "src/common/ResourceGrid.limit.js",
+        "src/common/TimelineGrid.js",
         "src/Calendar.js",
         "src/defaults.js",
         "src/lang.js",
