@@ -2,13 +2,6 @@
 var ResourceGrid = Grid.extend({
 
   bottomCoordPadding: 0, // hack for extending the hit area for the last row of the coordinate grid
-
-  colDates: null, // flat chronological array of each cell's dates
-  dayToCellOffsets: null, // maps days offsets from grid's start date, to cell offsets
-
-  minTime: null, // Duration object that denotes the first visible time of any given day
-  maxTime: null, // Duration object that denotes the exclusive visible end time of any given day
-
   rowEls: null, // set of fake row elements
 
   resources: [],
@@ -28,30 +21,39 @@ var ResourceGrid = Grid.extend({
   },
 
   renderDates: function(){
-    var view = this.view;
-    var resources = this.resources;
-    var rowCnt = resources.length;
-    var html = '';
-    var row;
+    var rowsHtml = this.resourceRowsHtml();
+    var html = '' +
+                '<table>' +
+                  '<colgroup>' +
+                    '<col class="fc-main-col">' +
+                  '</colgroup>' +
+                  '<tbody>' +
+                    rowsHtml +
+                  '</tbody>' +
+                '</table>';
 
-    for (row = 0; row < rowCnt; row++) {
-      html += this.resourceRowHtml(resources[row], row);
-    }
     this.el.html(html);
     this.rowEls = this.el.find('tr');
 
     //TODO: trigger resourceRender here
   },
 
-  // Generates the HTML for a single row. `row` is the row number.
-  resourceRowHtml: function(resource, row) {
-    return this.rowHtml('resource', row);
+  resourceRowsHtml: function() {
+    var view = this.view;
+    var rowCnt = this.rowCnt;
+    var html = '';
+    var row;
+
+    for (row = 0; row < rowCnt; row++) {
+      html += this.rowHtml('resource', row);
+    }
+    return html;
   },
 
   resourceCellHtml: function(cell) {
     var resource = cell.resource;
     return '' +
-          '<td>' +
+          '<td class="'+ this.view.widgetContentClass +'">' +
             '<div class="fc-cell-content">' +
               '<span class="fc-cell-text">' +
                  resource.name +
@@ -69,24 +71,17 @@ var ResourceGrid = Grid.extend({
         '<tbody>' +
           '<tr>' +
             '<th class="' + this.view.widgetHeaderClass + '">' +
-              '<div>' +
-                this.rowHtml('head') +
+              '<div class="fc-cell-content">' +
+                '<div class="fc-icon fc-expander-space">' +
+                '</div>' +
+                '<span class="fc-cell-text">' +
+                  this.view.opt('resourceColTitle') +
+                '</span>' +
               '</div>' +
             '</th>' +
           '</tr>' +
         '</tbody>' +
       '</table>';
-  },
-
-  headCellHtml: function() {
-    return '' +
-        '<div class="fc-cell-content">' +
-          '<div class="fc-icon fc-expander-space">' +
-          '</div>' +
-          '<span class="fc-cell-text">' +
-            this.view.opt('resourceColTitle') +
-          '</span>' +
-        '</div>';
   },
 
 

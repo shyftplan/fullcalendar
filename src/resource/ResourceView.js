@@ -8,8 +8,13 @@ var ResourceView = View.extend({
 
   initialize: function() {
     this.resourceGrid = new ResourceGrid(this);
-    // this.timelineGrid = new TimelineGrid(this);
-    this.coordMap = this.resourceGrid.coordMap; // the view's date-to-cell mapping is identical to the subcomponent's
+    this.timelineGrid = new TimelineGrid(this);
+
+    this.coordMap = new ComboCoordMap([
+      this.resourceGrid.coordMap,
+      this.timelineGrid.coordMap
+    ]);
+
     this.processOptions();
   },
 
@@ -22,8 +27,7 @@ var ResourceView = View.extend({
   setRange: function(range) {
     View.prototype.setRange.call(this, range); // call the super-method
 
-    // this.resourceGrid.breakOnWeeks = /year|month|week/.test(this.intervalUnit); // do before setRange
-    this.resourceGrid.setRange(range);
+    this.timelineGrid.setRange(range);
   },
 
 
@@ -49,17 +53,26 @@ var ResourceView = View.extend({
 
   // Renders the view into `this.el`, which should already be assigned
   renderDates: function() {
+    var resourceAreaEl;
+    var timelineAreaEl;
 
     this.dayNumbersVisible = this.resourceGrid.rowCnt > 1; // TODO: make grid responsible
 
-    this.el.addClass('fc-basic-view').html(this.renderHtml());
+    this.el.addClass('fc-nested fc-timeline')
+    this.el.html(this.renderHtml());
 
     this.headRowEl = this.el.find('thead .fc-row');
 
-    this.scrollerEl = this.el.find('.fc-body .fc-resource-area');
-    this.resourceGrid.coordMap.containerEl = this.scrollerEl; // constrain clicks/etc to the dimensions of the scroller
-    this.resourceGrid.setElement(this.el.find('.fc-body .fc-resource-area'));
-    this.resourceGrid.renderDates(this.hasRigidRows());
+    resourceAreaEl = this.el.find('.fc-body .fc-resource-area');
+    this.scrollerEl = resourceAreaEl;
+    this.resourceGrid.coordMap.containerEl = resourceAreaEl; // constrain clicks/etc to the dimensions of the scroller
+    this.resourceGrid.setElement(resourceAreaEl);
+    this.resourceGrid.renderDates();
+
+    timelineAreaEl = this.el.find('.fc-body .fc-time-area');
+    this.timelineGrid.coordMap.containerEl = timelineAreaEl; // constrain clicks/etc to the dimensions of the scroller
+    this.timelineGrid.setElement(timelineAreaEl);
+    this.timelineGrid.renderDates(this.hasRigidRows());
   },
 
 
@@ -87,8 +100,6 @@ var ResourceView = View.extend({
           '<tr>' +
             '<td class="fc-resource-area '+ this.widgetContentClass +'">' +
             '</td>' +
-            '<td class="fc-divider fc-col-resizer fc-widget-header">' +
-            '</td>' +
             '<td class="fc-time-area '+ this.widgetContentClass +'">' +
             '</td>' +
           '</tr>' +
@@ -97,36 +108,30 @@ var ResourceView = View.extend({
   },
 
   headHtml: function() {
+    var resourceGridHeadHtml = this.resourceGrid.headHtml();
+    var timelineGridHeadHtml = this.timelineGrid.headHtml();
+
     return '' +
       '<td class="fc-resource-area '+ this.widgetHeaderClass +'">' +
         '<div class="fc-scrollpane">' +
           '<div style="overflow-x: scroll; overflow-y: hidden; margin: 0px;">' +
             '<div class="fc-scrollpane-inner" style="min-width: 70px;">' +
               '<div class="fc-content">' +
-                this.resourceGrid.headHtml() +
+                resourceGridHeadHtml +
               '</div>' +
-              // '<div class="fc-bg">' +
-              // '</div>' +
             '</div>' +
           '</div>' +
         '</div>' +
-      '</td>' +
-      '<td class="fc-divider fc-col-resizer '+  this.widgetHeaderClass +'">' +
       '</td>' +
       '<td class="fc-time-area '+ this.widgetHeaderClass +'">' +
         '<div class="fc-scrollpane">' +
           '<div style="overflow-x: scroll; overflow-y: hidden; margin: 0px;">' +
             '<div class="fc-scrollpane-inner">' +
               '<div class="fc-content">' +
-                // this.timelineGrid.headHtml() +
+                timelineGridHeadHtml +
               '</div>' +
-              // '<div class="fc-bg">' +
-              // '</div>' +
             '</div>' +
           '</div>' +
-          '<span class="fc-cell-text fc-following" style="position: absolute; z-index: 1000; font-weight: 400; font-size: 14px; font-family: Lato, sans-serif; color: rgb(68, 68, 68); padding: 0px 4px; top: 3px; left: 254.5px;">' +
-            'Sun 6/7' +
-          '</span>' +
         '</div>' +
       '</td>';
   },
@@ -192,10 +197,12 @@ var ResourceView = View.extend({
   // Sets the height of just the ResourceGrid component in this view
   setGridHeight: function(height, isAuto) {
     if (isAuto) {
-      undistributeHeight(this.resourceGrid.rowEls); // let the rows be their natural height with no expanding
+      undistributeHeight(this.resourceGrid.rowEls);
+      undistributeHeight(this.timelineGrid.rowEls);
     }
     else {
       distributeHeight(this.resourceGrid.rowEls, height, true); // true = compensate for height-hogging rows
+      distributeHeight(this.timelineGrid.rowEls, height, true); // true = compensate for height-hogging rows
     }
   },
 
@@ -214,7 +221,8 @@ var ResourceView = View.extend({
 
   // Retrieves all segment objects that are rendered in the view
   getEventSegs: function() {
-    return this.timeline.getEventSegs();
+    // return this.timelineGrid.getEventSegs();
+    return [];
   },
 
 
