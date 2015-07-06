@@ -95,33 +95,4 @@ var ResourceGrid = Grid.extend({
     this.colCnt = 1;
   },
 
-
-  // Computes a default event time formatting string if `timeFormat` is not explicitly defined
-  computeEventTimeFormat: function() {
-    return this.view.opt('extraSmallTimeFormat'); // like "6p" or "6:30p"
-  },
-
-
-  // Computes a default `displayEventEnd` value if one is not expliclty defined
-  computeDisplayEventEnd: function() {
-    return this.colCnt == 1; // we'll likely have space if there's only one day
-  },
-
-
-  // Retrieves the element representing the given row
-  getRowEl: function(row) {
-    return this.rowEls.eq(row);
-  },
-
-
-  // Overrides Grid's method for when row coordinates are computed
-  computeRowCoords: function() {
-    var rowCoords = Grid.prototype.computeRowCoords.call(this); // call the super-method
-
-    // hack for extending last row (used by AgendaView)
-    rowCoords[rowCoords.length - 1].bottom += this.bottomCoordPadding;
-
-    return rowCoords;
-  }
-
 });

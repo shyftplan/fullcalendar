@@ -1,49 +1,62 @@
 
 var TimelineGrid = Grid.extend({
-  resources: null,
-  colDates: null,
+  rowEls: null,
+  colTimes: null,
   slotDuration: null,
+  slatEls: null,
 
   constructor: function() {
-    DayGrid.apply(this, arguments);
+    Grid.apply(this, arguments);
     this.processOptions();
   },
 
   processOptions: function() {
     var view = this.view;
-    this.resources = view.opt('resources');
-
-    this.rowCnt = this.resources.length;
+    this.rowCnt = view.rowCnt;
     this.slotDuration = moment.duration(1, 'day');
   },
 
+  computeCellRange: function(cell) {
+    var date = this.computeCellDate(cell);
+
+    return {
+      start: date,
+      end: date.clone().add(this.slotDuration)
+    };
+  },
+
   computeCellDate: function(cell) {
-    return this.colDates[cell.col];
+    return this.colTimes[cell.col];
   },
 
   rangeUpdated: function() {
     var view = this.view;
-    var colDates = [];
+    var colTimes = [];
     var date;
 
     date = this.start.clone();
     while (date.isBefore(this.end)) {
-      colDates.push(date.clone());
+      colTimes.push(date.clone());
       date.add(1, 'day');
       date = view.skipHiddenDays(date);
     }
 
     if (this.isRTL) {
-      colDates.reverse();
+      colTimes.reverse();
     }
 
-    this.colDates = colDates;
-    this.colCnt = colDates.length;
+    this.colTimes = colTimes;
+    this.colCnt = colTimes.length;
+    this.calRange = {
+      start: this.start.clone(),
+      end: this.end.clone()
+    };
   },
 
   renderDates: function() {
     this.el.html(this.renderHtml());
     this.rowEls = this.el.find('.fc-rows tr');
+    this.slatEls = this.el.find('.fc-slats td');
 
     // for (i = 0; i < this.colCnt; i++) {
     //   cell = this.getCell(i);
@@ -56,10 +69,10 @@ var TimelineGrid = Grid.extend({
       '<div class="fc-content">' +
         '<div class="fc-rows">' +
           '<table>' +
-            this.resourceRowsHtml() +
+            this.contentRowsHtml() +
           '</table>' +
         '</div>' +
-      '</div>';
+      '</div>' +
       '<div class="fc-bg">' +
         '<div class="fc-slats">' +
           '<table>' +
@@ -69,18 +82,38 @@ var TimelineGrid = Grid.extend({
       '</div>';
   },
 
-  resourceCellHtml: function(cell) {
-    return '' +
-          '<td class="' + this.view.widgetContentClass + '">' +
-          '</td>';
+  slatRowsHtml: function() {
+    var view = this.view;
+    var isRTL = this.isRTL;
+    var html = '';
+    var slotTime = this.start.clone();
+
+    while (slotTime < this.end) {
+      html +=
+        '<td class="' + view.widgetContentClass + '" data-date="' + slotTime.format() + '">' +
+          '<div></div>' +
+        '</td>';
+
+      slotTime.add(this.slotDuration);
+    }
+
+    return '<tr>' + html + "</tr>";
   },
 
-  resourceRowsHtml: function() {
+  contentRowHtml: function() {
+    return '' +
+          '<tr>' +
+            '<td class="' + this.view.widgetContentClass + '">' +
+            '</td>' +
+          '</tr>';
+  },
+
+  contentRowsHtml: function() {
     var rowCnt = this.rowCnt;
     var html = '';
 
     for (row = 0; row < rowCnt; row++) {
-      html += this.rowHtml('resource', row);
+      html += this.contentRowHtml();
     }
 
     return html;
@@ -103,7 +136,7 @@ var TimelineGrid = Grid.extend({
     var view = this.view;
     var isRTL = this.isRTL;
     var html = '';
-    var slotTime = this.start;
+    var slotTime = this.start.clone();
 
     while (slotTime < this.end) {
       html +=
@@ -115,6 +148,15 @@ var TimelineGrid = Grid.extend({
     }
 
     return '<tr>' + html + "</tr>";
+  },
+
+  getRowEl: function(row) {
+    return this.rowEls.eq(row);
+  },
+
+  getColEl: function(col) {
+    debugger
+    return this.slatEls.eq(col);
   },
 
 });

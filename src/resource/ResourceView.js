@@ -7,6 +7,8 @@ var ResourceView = View.extend({
   resourceColWidth: null, // width of all the resource-name cells running down the side
 
   initialize: function() {
+    this.processOptions();
+
     this.resourceGrid = new ResourceGrid(this);
     this.timelineGrid = new TimelineGrid(this);
 
@@ -15,11 +17,12 @@ var ResourceView = View.extend({
       this.timelineGrid.coordMap
     ]);
 
-    this.processOptions();
+    // this.coordMap = this.timelineGrid.coordMap;
   },
 
   processOptions: function() {
     this.resources = this.opt('resources');
+    this.rowCnt = this.resources.length;
   },
 
 
@@ -29,7 +32,6 @@ var ResourceView = View.extend({
 
     this.timelineGrid.setRange(range);
   },
-
 
   // Compute the value to feed into setRange. Overrides superclass.
   computeRange: function(date) {
@@ -63,13 +65,13 @@ var ResourceView = View.extend({
 
     this.headRowEl = this.el.find('thead .fc-row');
 
-    resourceAreaEl = this.el.find('.fc-body .fc-resource-area');
+    resourceAreaEl = this.el.find('.fc-body .fc-resource-area .fc-scrollpane-inner');
     this.scrollerEl = resourceAreaEl;
     this.resourceGrid.coordMap.containerEl = resourceAreaEl; // constrain clicks/etc to the dimensions of the scroller
     this.resourceGrid.setElement(resourceAreaEl);
     this.resourceGrid.renderDates();
 
-    timelineAreaEl = this.el.find('.fc-body .fc-time-area');
+    timelineAreaEl = this.el.find('.fc-body .fc-time-area .fc-scrollpane-inner');
     this.timelineGrid.coordMap.containerEl = timelineAreaEl; // constrain clicks/etc to the dimensions of the scroller
     this.timelineGrid.setElement(timelineAreaEl);
     this.timelineGrid.renderDates(this.hasRigidRows());
@@ -81,6 +83,9 @@ var ResourceView = View.extend({
   unrenderDates: function() {
     this.resourceGrid.unrenderDates();
     this.resourceGrid.removeElement();
+
+    this.timelineGrid.unrenderDates();
+    this.timelineGrid.removeElement();
   },
 
 
@@ -99,8 +104,20 @@ var ResourceView = View.extend({
         '<tbody class="fc-body">' +
           '<tr>' +
             '<td class="fc-resource-area '+ this.widgetContentClass +'">' +
+              '<div class="fc-scrollpane">' +
+                '<div style="overflow-x: scroll; overflow-y: hidden; margin: 0px;">' +
+                  '<div class="fc-scrollpane-inner">' +
+                  '</div>' +
+                '</div>' +
+              '</div>' +
             '</td>' +
             '<td class="fc-time-area '+ this.widgetContentClass +'">' +
+              '<div class="fc-scrollpane">' +
+                '<div style="overflow-x: scroll; overflow-y: hidden; margin: 0px;">' +
+                  '<div class="fc-scrollpane-inner">' +
+                  '</div>' +
+                '</div>' +
+              '</div>' +
             '</td>' +
           '</tr>' +
         '</tbody>' +
@@ -168,11 +185,12 @@ var ResourceView = View.extend({
     unsetScroller(this.scrollerEl);
     uncompensateScroll(this.headRowEl);
 
-    this.resourceGrid.removeSegPopover(); // kill the "more" popover if displayed
+    // this.timelineGrid.removeSegPopover(); // kill the "more" popover if displayed
 
     // is the event limit a constant level number?
     if (eventLimit && typeof eventLimit === 'number') {
-      this.resourceGrid.limitRows(eventLimit); // limit the levels first so the height can redistribute after
+      console.log("eventLimit");
+      // this.timelineGrid.limitRows(eventLimit); // limit the levels first so the height can redistribute after
     }
 
     scrollerHeight = this.computeScrollerHeight(totalHeight);
@@ -180,7 +198,8 @@ var ResourceView = View.extend({
 
     // is the event limit dynamically calculated?
     if (eventLimit && typeof eventLimit !== 'number') {
-      this.resourceGrid.limitRows(eventLimit); // limit the levels after the grid's row heights have been set
+      console.log("eventLimit");
+      // this.timelineGrid.limitRows(eventLimit); // limit the levels after the grid's row heights have been set
     }
 
     if (!isAuto && setPotentialScroller(this.scrollerEl, scrollerHeight)) { // using scrollbars?
@@ -207,13 +226,38 @@ var ResourceView = View.extend({
   },
 
 
+  resourceIdToRow: function(resourceId) {
+    var resources = this.resources;
+    var row;
+
+    for (row = 0; row < this.rowCnt; row++) {
+      if (resources[row].id == resourceId) {
+        return row;
+      }
+    }
+    return -1;
+  },
+
+  updateSize: function(isResize) {
+    // this.resourceGrid.updateSize(isResize);
+    this.timelineGrid.updateSize(isResize);
+
+		View.prototype.updateSize.call(this, isResize); // call the super-method
+  },
+
   /* Events
   ------------------------------------------------------------------------------------------------------------------*/
 
 
   // Renders the given events onto the view and populates the segments array
   renderEvents: function(events) {
-    // this.timelineGrid.renderEvents(events);
+    var i;
+    var event;
+    for (i = 0; i < events.length; i++) {
+      event = events[i];
+      event.row = this.resourceIdToRow(event.resource);
+    }
+    this.timelineGrid.renderEvents(events);
 
     this.updateHeight(); // must compensate for events that overflow the row
   },
@@ -228,7 +272,7 @@ var ResourceView = View.extend({
 
   // Unrenders all event elements and clears internal segment data
   unrenderEvents: function() {
-    // this.timelineGrid.unrenderEvents();
+    this.timelineGrid.unrenderEvents();
 
     // we DON'T need to call updateHeight() because:
     // A) a renderEvents() call always happens after this, which will eventually call updateHeight()
@@ -257,13 +301,13 @@ var ResourceView = View.extend({
 
   // Renders a visual indication of a selection
   renderSelection: function(range) {
-    // this.timelineGrid.renderSelection(range);
+    this.timelineGrid.renderSelection(range);
   },
 
 
   // Unrenders a visual indications of a selection
   unrenderSelection: function() {
-    // this.timelineGrid.unrenderSelection();
+    this.timelineGrid.unrenderSelection();
   }
 
 });
