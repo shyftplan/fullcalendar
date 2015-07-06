@@ -12,12 +12,12 @@ var ResourceView = View.extend({
     this.resourceGrid = new ResourceGrid(this);
     this.timelineGrid = new TimelineGrid(this);
 
-    this.coordMap = new ComboCoordMap([
-      this.resourceGrid.coordMap,
-      this.timelineGrid.coordMap
-    ]);
-
-    // this.coordMap = this.timelineGrid.coordMap;
+    // this.coordMap = new ComboCoordMap([
+    //   this.resourceGrid.coordMap,
+    //   this.timelineGrid.coordMap
+    // ]);
+    //
+    this.coordMap = this.timelineGrid.coordMap;
   },
 
   processOptions: function() {
@@ -242,7 +242,7 @@ var ResourceView = View.extend({
     // this.resourceGrid.updateSize(isResize);
     this.timelineGrid.updateSize(isResize);
 
-		View.prototype.updateSize.call(this, isResize); // call the super-method
+    View.prototype.updateSize.call(this, isResize); // call the super-method
   },
 
   /* Events
@@ -265,8 +265,7 @@ var ResourceView = View.extend({
 
   // Retrieves all segment objects that are rendered in the view
   getEventSegs: function() {
-    // return this.timelineGrid.getEventSegs();
-    return [];
+    return this.timelineGrid.getEventSegs();
   },
 
 
@@ -286,12 +285,12 @@ var ResourceView = View.extend({
 
   // A returned value of `true` signals that a mock "helper" event has been rendered.
   renderDrag: function(dropLocation, seg) {
-    // return this.timelineGrid.renderDrag(dropLocation, seg);
+    return this.timelineGrid.renderDrag(dropLocation, seg);
   },
 
 
   unrenderDrag: function() {
-    // this.timelineGrid.unrenderDrag();
+    this.timelineGrid.unrenderDrag();
   },
 
 
@@ -308,7 +307,21 @@ var ResourceView = View.extend({
   // Unrenders a visual indications of a selection
   unrenderSelection: function() {
     this.timelineGrid.unrenderSelection();
-  }
+  },
 
+  rowToResourceId: function(row){
+    return this.resources[row].id;
+  },
+
+  // Event drop
+  reportEventDrop: function(event, dropLocation, largeUnit, el, ev) {
+    var newRow = dropLocation.row;
+
+    if (newRow !== undefined) {
+      dropLocation.resource = this.rowToResourceId(newRow);
+    }
+
+    View.prototype.reportEventDrop.apply(this, arguments);
+  },
 });
 

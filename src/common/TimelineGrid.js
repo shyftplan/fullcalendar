@@ -4,6 +4,7 @@ var TimelineGrid = Grid.extend({
   colTimes: null,
   slotDuration: null,
   slatEls: null,
+  helperEls: null,
 
   constructor: function() {
     Grid.apply(this, arguments);
@@ -155,8 +156,55 @@ var TimelineGrid = Grid.extend({
   },
 
   getColEl: function(col) {
-    debugger
     return this.slatEls.eq(col);
   },
+
+
+  /* Selection
+  ------------------------------------------------------------------------------------------------------------------*/
+
+
+  // Renders a visual indication of a selection. Overrides the default, which was to simply render a highlight.
+  renderSelection: function(range) {
+    if (this.view.opt('selectHelper')) { // this setting signals that a mock helper event should be rendered
+      this.renderRangeHelper(range);
+    }
+    else {
+      this.renderHighlight(this.selectionRangeToSegs(range));
+    }
+  },
+
+
+  // Unrenders any visual indication of a selection
+  unrenderSelection: function() {
+    this.unrenderHelper();
+    this.unrenderHighlight();
+  },
+
+
+  /* Fill System (highlight, background events, business hours)
+  ------------------------------------------------------------------------------------------------------------------*/
+
+
+  // Renders a set of rectangles over the given time segments.
+  // Only returns segments that successfully rendered.
+  renderFill: function(type, segs, className) {
+    var nodes = [];
+    var i, seg;
+    var skeletonEl;
+
+    segs = this.renderFillSegEls(type, segs); // assignes `.el` to each seg. returns successfully rendered segs
+
+    for (i = 0; i < segs.length; i++) {
+      seg = segs[i];
+      skeletonEl = this.renderFillRow(type, seg, className);
+      this.rowEls.eq(seg.row).append(skeletonEl);
+      nodes.push(skeletonEl[0]);
+    }
+
+    this.elsByFill[type] = $(nodes);
+
+    return segs;
+  }
 
 });

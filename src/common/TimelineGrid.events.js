@@ -16,24 +16,42 @@ TimelineGrid.mixin({
   },
 
   renderFgSegs: function(segs) {
+    var segs = this.renderFgSegEls(segs); // returns a subset of the segs. segs that were actually rendered
+    this.placeSegsByRow(segs);
+    return segs;
+  },
+
+  placeSegsByRow: function(segs) {
+    var segRows = this.groupSegRows(segs);
+    var row;
     var rowSegs;
 
-    segs = this.renderFgSegEls(segs); // returns a subset of the segs. segs that were actually rendered
-
-    this.computeSegHorizontals(segs);
-    segRows = this.groupSegRows(segs);
-
-    for (row = 0; row < this.rowCnt; row++) { // iterate each column grouping
+    for (row = 0; row < this.rowCnt; row++) {
       rowSegs = segRows[row];
-      this.placeSlotSegs(rowSegs);
-      this.renderFgRowSegs(segRows[row], $(this.rowEls[row]).find('td'));
+
+      $(this.getRowEl(row).find('td')).append(this.renderFgRowSegs(segRows[row]));
     }
 
-    return segs; // return only the segs that were actually rendered
+    return segs;
+  },
+
+  renderFgRowSegs: function(rowSegs){
+    var containerEl = $('<div class="fc-event-container"/>');
+
+    this.computeSegHorizontals(rowSegs);
+    this.placeSlotSegs(rowSegs);
+
+    // assign positioning CSS and insert into container
+    for (i = 0; i < rowSegs.length; i++) {
+      seg = rowSegs[i];
+      seg.el.css(this.generateSegPositionCss(seg));
+      containerEl.append(seg.el);
+    }
+    return containerEl;
   },
 
   updateSegHorizontals: function() {
-    var allSegs = (this.segs || []).concat(this.businessHourSegs || []);
+    var allSegs = (this.segs || []);
     var i;
 
     this.computeSegHorizontals(allSegs);
@@ -46,10 +64,7 @@ TimelineGrid.mixin({
   },
 
   unrenderFgSegs: function(segs) {
-    if (this.eventSkeletonEl) {
-      this.eventSkeletonEl.remove();
-      this.eventSkeletonEl = null;
-    }
+    this.el.find('.fc-event-container').remove();
   },
 
   groupSegRows: function(segs) {
@@ -71,20 +86,6 @@ TimelineGrid.mixin({
     return segRows;
   },
 
-  renderFgRowSegs: function(rowSegs, contentEl){
-    var containerEl = $('<div class="fc-event-container"/>');
-
-    // assign positioning CSS and insert into container
-    for (i = 0; i < rowSegs.length; i++) {
-      seg = rowSegs[i];
-      seg.el.css(this.generateSegPositionCss(seg));
-
-      containerEl.append(seg.el);
-    }
-
-    $(contentEl).append(containerEl);
-  },
-
   fgSegHtml: function(seg, disableResizing){
     var view = this.view;
     var event = seg.event;
@@ -94,7 +95,7 @@ TimelineGrid.mixin({
     var classes = this.getSegClasses(seg, isDraggable, isResizableFromStart || isResizableFromEnd);
     var skinCss = cssToStr(this.getEventSkinCss(event));
 
-    classes.push('fc-timeline-event');
+    classes.push('fc-timeline-event fc-h-event');
 
     return '<a class="' + classes.join(' ') + '"' +
       (event.url ?
@@ -211,8 +212,6 @@ TimelineGrid.mixin({
     };
   },
 
-  // Given an array of segments that are all in the same column, sets the backwardCoord and forwardCoord on each.
-  // NOTE: Also reorders the given array by start time!
   placeSlotSegs(segs) {
     var levels;
     var level0;
@@ -269,8 +268,6 @@ TimelineGrid.mixin({
   // dropLocation's end might be null, as well as `seg`. See Grid::renderDrag for more info.
   // A returned value of `true` signals that a mock "helper" event has been rendered.
   renderDrag: function(dropLocation, seg) {
-    debugger
-
     if (seg) { // if there is event information for this drag, render a helper event
       this.renderRangeHelper(dropLocation, seg);
       this.applyDragOpacity(this.helperEl);
@@ -290,6 +287,78 @@ TimelineGrid.mixin({
     this.unrenderHighlight();
   },
 
+  /* Event Resize Visualization
+  ------------------------------------------------------------------------------------------------------------------*/
 
+
+  // Renders a visual indication of an event being resized
+  renderEventResize: function(range, seg) {
+    this.renderRangeHelper(range, seg);
+  },
+
+
+  // Unrenders any visual indication of an event being resized
+  unrenderEventResize: function() {
+    this.unrenderHelper();
+  },
+
+
+  /* Event Helper
+  ------------------------------------------------------------------------------------------------------------------*/
+
+
+  // Renders a mock "helper" event. `sourceSeg` is the original segment object and might be null (an external drag)
+  renderHelper: function(event, sourceSeg) {
+    var segs = this.eventsToSegs([ event ]);
+    var tableEl;
+    var i, seg;
+    var sourceEl;
+    var rowEl;
+    var containerEl;
+
+    segs = this.renderFgSegEls(segs); // assigns each seg's el and returns a subset of segs that were rendered
+
+    // Try to make the segment that is in the same row as sourceSeg look the same
+    for (i = 0; i < segs.length; i++) {
+      seg = segs[i];
+
+      if (sourceSeg) {
+        sourceEl = sourceSeg.el;
+      }
+    }
+
+    rowEl = this.getRowEl(event.row).find('td');
+    containerEl = this.renderFgRowSegs(segs);
+    this.helperEl = $(containerEl).addClass('fc-helper-container').appendTo(rowEl);
+  },
+
+
+  // Unrenders any mock helper event
+  unrenderHelper: function() {
+    if (this.helperEl) {
+      this.helperEl.remove();
+      this.helperEl = null;
+    }
+  },
+
+  computeEventDrop: function(startCell, endCell, event) {
+    var dropLocation = Grid.prototype.computeEventDrop.apply(this, arguments);
+
+    if (startCell.row != endCell.row) {
+      dropLocation.row = endCell.row;
+    }
+
+    return dropLocation;
+  },
+
+  fabricateHelperEvent: function(range, sourceSeg) {
+    var fakeEvent = Grid.prototype.fabricateHelperEvent.apply(this, arguments);
+
+    if (range.row !== undefined) {
+      fakeEvent.row = range.row;
+    }
+
+    return fakeEvent;
+  }
 });
 
