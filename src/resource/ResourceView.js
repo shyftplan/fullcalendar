@@ -11,12 +11,6 @@ var ResourceView = View.extend({
 
     this.resourceGrid = new ResourceGrid(this);
     this.timelineGrid = new TimelineGrid(this);
-
-    // this.coordMap = new ComboCoordMap([
-    //   this.resourceGrid.coordMap,
-    //   this.timelineGrid.coordMap
-    // ]);
-    //
     this.coordMap = this.timelineGrid.coordMap;
   },
 
@@ -24,7 +18,6 @@ var ResourceView = View.extend({
     this.resources = this.opt('resources');
     this.rowCnt = this.resources.length;
   },
-
 
   // Sets the display range and computes all necessary dates
   setRange: function(range) {
@@ -87,11 +80,6 @@ var ResourceView = View.extend({
     this.timelineGrid.unrenderDates();
     this.timelineGrid.removeElement();
   },
-
-
-  renderBusinessHours: function() {
-  },
-
 
   renderHtml: function() {
     return '' +
@@ -225,6 +213,9 @@ var ResourceView = View.extend({
     }
   },
 
+  rowToResourceId: function(row){
+    return this.resources[row].id;
+  },
 
   resourceIdToRow: function(resourceId) {
     var resources = this.resources;
@@ -309,10 +300,6 @@ var ResourceView = View.extend({
     this.timelineGrid.unrenderSelection();
   },
 
-  rowToResourceId: function(row){
-    return this.resources[row].id;
-  },
-
   // Event drop
   reportEventDrop: function(event, dropLocation, largeUnit, el, ev) {
     var newRow = dropLocation.row;
@@ -322,6 +309,10 @@ var ResourceView = View.extend({
     }
 
     View.prototype.reportEventDrop.apply(this, arguments);
+  },
+
+  isEventResizableFromStart: function(event) {
+    return this.isEventResizable(event);
   },
 });
 
