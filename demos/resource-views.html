@@ -13,7 +13,7 @@
       header: {
         left: 'prev,next today',
         center: 'title',
-        right: 'timeline'
+        right: 'timeline,timelineWeek,timelineHours'
       },
       defaultDate: '2014-11-12',
       editable: true,
@@ -23,10 +23,35 @@
         timeline: {
           type: 'resource',
           duration: {
+            days: 10
+          },
+          slotDuration: '24:00:00',
+          snapDuration: '24:00:00',
+          buttonText: "10 days",
+          resourceColTitle: "Resources",
+          colFormat: 'MM-DD'
+        },
+        timelineWeek: {
+          type: 'resource',
+          duration: {
             days: 7
           },
-          buttonText: "resource",
-          resourceColTitle: "Resources"
+          slotDuration: '24:00:00',
+          snapDuration: '12:00:00',
+          buttonText: "7 days",
+          resourceColTitle: "Resources",
+          colFormat: 'MM-DD'
+        },
+        timelineHours: {
+          type: 'resource',
+          duration: {
+            hours: 10
+          },
+          slotDuration: '01:00:00',
+          snapDuration: '00:30:00',
+          buttonText: "10 hours",
+          resourceColTitle: "Resources",
+          colFormat: 'HH'
         }
       },
       allDaySlot: false, // Unsupported yet

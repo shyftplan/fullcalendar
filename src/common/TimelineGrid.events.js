@@ -146,7 +146,7 @@ TimelineGrid.mixin({
   },
 
   computeSegLeft: function(time, isStart) {
-    var slatCoverage = time / this.slotDuration;
+    var slatCoverage = time / this.snapDuration;
     var slatIndex;
     var slatRemainder;
     var slatLeft;

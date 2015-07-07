@@ -3,8 +3,11 @@ var TimelineGrid = Grid.extend({
   rowEls: null,
   colTimes: null,
   slotDuration: null,
+  snapDuration: null,
+  cellDuration: null,
   slatEls: null,
   helperEls: null,
+  colFormat: null,
 
   constructor: function() {
     Grid.apply(this, arguments);
@@ -13,8 +16,17 @@ var TimelineGrid = Grid.extend({
 
   processOptions: function() {
     var view = this.view;
+    var slotDuration = view.opt('slotDuration');
+    var snapDuration = view.opt('snapDuration');
+
+    slotDuration = moment.duration(slotDuration);
+    snapDuration = snapDuration ? moment.duration(snapDuration) : slotDuration;
+
+    this.slotDuration = slotDuration;
+    this.snapDuration = snapDuration;
+    this.cellDuration = snapDuration; // for Grid system
     this.rowCnt = view.rowCnt;
-    this.slotDuration = moment.duration(1, 'day');
+    this.colFormat = view.opt('colFormat');
   },
 
   computeCellRange: function(cell) {
@@ -38,7 +50,7 @@ var TimelineGrid = Grid.extend({
     date = this.start.clone();
     while (date.isBefore(this.end)) {
       colTimes.push(date.clone());
-      date.add(1, 'day');
+      date.add(this.snapDuration);
       date = view.skipHiddenDays(date);
     }
 
@@ -95,7 +107,7 @@ var TimelineGrid = Grid.extend({
           '<div></div>' +
         '</td>';
 
-      slotTime.add(this.slotDuration);
+      slotTime.add(this.snapDuration);
     }
 
     return '<tr>' + html + "</tr>";
@@ -142,7 +154,7 @@ var TimelineGrid = Grid.extend({
     while (slotTime < this.end) {
       html +=
         '<td class="' + view.widgetHeaderClass + '" data-date="' + slotTime.format() + '">' +
-          '<div>' + slotTime.format('MM-DD') + '</div>' +
+          '<div>' + slotTime.format(this.colFormat) + '</div>' +
         '</td>';
 
       slotTime.add(this.slotDuration);
