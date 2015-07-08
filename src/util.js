@@ -8,6 +8,10 @@ fc.htmlEscape = htmlEscape;
 fc.cssToStr = cssToStr;
 fc.proxy = proxy;
 fc.capitaliseFirstLetter = capitaliseFirstLetter;
+fc.setPotentialScroller = setPotentialScroller;
+fc.unsetScroller = unsetScroller;
+fc.compensateScroll = compensateScroll;
+fc.uncompensateScroll = compensateScroll;
 
 
 /* FullCalendar-specific DOM Utilities
