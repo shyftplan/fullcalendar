@@ -32,6 +32,9 @@
         "src/common/TimeGrid.js",
         "src/common/TimeGrid.events.js",
         "src/common/View.js",
+        "src/common/ResourceGrid.js",
+        "src/common/TimelineGrid.js",
+        "src/common/TimelineGrid.events.js",
         "src/Calendar.js",
         "src/defaults.js",
         "src/lang.js",
@@ -42,13 +45,16 @@
         "src/basic/config.js",
         "src/agenda/AgendaView.js",
         "src/agenda/config.js",
+        "src/resource/ResourceView.js",
+        "src/resource/config.js",
         "src/outro.js"
       ],
       "styles": [
         "src/common/common.css",
         "src/main.css",
         "src/basic/basic.css",
-        "src/agenda/agenda.css"
+        "src/agenda/agenda.css",
+        "src/resource/resource.css"
       ]
     },
     "fullcalendar.print": {

@@ -3640,12 +3640,12 @@ Grid.mixin({
 
 		return {
 			'background-color':
-				event.backgroundColor ||
+				(event.backgroundColor ||
 				event.color ||
 				source.backgroundColor ||
 				source.color ||
 				view.opt('eventBackgroundColor') ||
-				view.opt('eventColor')
+				view.opt('eventColor')) + ' !important'
 		};
 	},
 
@@ -4226,12 +4226,12 @@ Grid.mixin({
 
 		return {
 			'background-color':
-				event.backgroundColor ||
+				(event.backgroundColor ||
 				eventColor ||
 				source.backgroundColor ||
 				sourceColor ||
 				view.opt('eventBackgroundColor') ||
-				optionColor,
+				optionColor) + ' !important',
 			'border-color':
 				event.borderColor ||
 				eventColor ||
@@ -4974,6 +4974,8 @@ var DayGrid = Grid.extend({
 
 ;;
 
+fc.DayGrid = DayGrid;
+
 /* Event-rendering methods for the DayGrid class
 ----------------------------------------------------------------------------------------------------------------------*/
 
@@ -5697,6 +5699,11 @@ var TimeGrid = Grid.extend({
 		this.el.html(this.renderHtml());
 		this.dayEls = this.el.find('.fc-day');
 		this.slatEls = this.el.find('.fc-slats tr');
+
+		for (i = 0; i < this.colCnt; i++) {
+			cell = this.getCell(i);
+			this.view.trigger('agendaRender', null, cell.start, this.dayEls.eq(i));
+		}
 	},
 
 
@@ -8999,6 +9006,7 @@ function EventManager(options) { // assumed to be a calendar
 	t.normalizeEventRange = normalizeEventRange;
 	t.normalizeEventRangeTimes = normalizeEventRangeTimes;
 	t.ensureVisibleEventRange = ensureVisibleEventRange;
+	t.buildEventFromInput = buildEventFromInput;
 	
 	
 	// imports

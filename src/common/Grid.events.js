@@ -157,12 +157,12 @@ Grid.mixin({
 
 		return {
 			'background-color':
-				event.backgroundColor ||
+				(event.backgroundColor ||
 				event.color ||
 				source.backgroundColor ||
 				source.color ||
 				view.opt('eventBackgroundColor') ||
-				view.opt('eventColor')
+				view.opt('eventColor')) + ' !important'
 		};
 	},
 
@@ -743,12 +743,12 @@ Grid.mixin({
 
 		return {
 			'background-color':
-				event.backgroundColor ||
+				(event.backgroundColor ||
 				eventColor ||
 				source.backgroundColor ||
 				sourceColor ||
 				view.opt('eventBackgroundColor') ||
-				optionColor,
+				optionColor) + ' !important',
 			'border-color':
 				event.borderColor ||
 				eventColor ||

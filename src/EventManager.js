@@ -27,6 +27,7 @@ function EventManager(options) { // assumed to be a calendar
 	t.normalizeEventRange = normalizeEventRange;
 	t.normalizeEventRangeTimes = normalizeEventRangeTimes;
 	t.ensureVisibleEventRange = ensureVisibleEventRange;
+	t.buildEventFromInput = buildEventFromInput;
 	
 	
 	// imports

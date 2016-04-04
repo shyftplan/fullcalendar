@@ -1,0 +1,5 @@
+
+fcViews.resource = {
+	'class': ResourceView
+};
+
